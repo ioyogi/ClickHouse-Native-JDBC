@@ -14,37 +14,39 @@
 
 package com.github.housepower.buffer;
 
+import com.github.housepower.misc.NettyUtil;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ByteArrayWriter implements BuffedWriter {
+
     private final int columnSize;
+    private final List<ByteBuf> bufList = new ArrayList<>();
 
     private ByteBuf buf;
-    private final CompositeByteBuf compositeBuf;
 
     public ByteArrayWriter(int columnSize) {
         this.columnSize = columnSize;
-        this.buf = ByteBufAllocator.DEFAULT.buffer(columnSize, columnSize);
-        this.compositeBuf = ByteBufAllocator.DEFAULT.compositeBuffer().addComponent(buf);
+        this.buf = NettyUtil.alloc().buffer(columnSize, columnSize);
+        this.bufList.add(buf);
     }
 
     @Override
-    public void writeBinary(byte byt) throws IOException {
+    public void writeBinary(byte byt) {
         buf.writeByte(byt);
         flushToTarget(false);
     }
 
     @Override
-    public void writeBinary(byte[] bytes) throws IOException {
+    public void writeBinary(byte[] bytes) {
         writeBinary(bytes, 0, bytes.length);
     }
 
     @Override
-    public void writeBinary(byte[] bytes, int offset, int length) throws IOException {
+    public void writeBinary(byte[] bytes, int offset, int length) {
         if (buf.maxFastWritableBytes() < length) {
             int partial = buf.maxFastWritableBytes();
             buf.writeBytes(bytes, offset, partial);
@@ -61,11 +63,11 @@ public class ByteArrayWriter implements BuffedWriter {
         if (buf.maxFastWritableBytes() > 0 && !force)
             return;
 
-        buf = ByteBufAllocator.DEFAULT.buffer(columnSize, columnSize);
-        compositeBuf.addComponent(buf);
+        buf = NettyUtil.alloc().buffer(columnSize, columnSize);
+        bufList.add(buf);
     }
 
     public CompositeByteBuf getBuf() {
-        return compositeBuf;
+        return NettyUtil.alloc().compositeBuffer(bufList.size()).addComponents(true, bufList);
     }
 }

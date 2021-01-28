@@ -14,8 +14,6 @@
 
 package com.github.housepower.buffer;
 
-import com.github.housepower.log.Logger;
-import com.github.housepower.log.LoggerFactory;
 import com.github.housepower.serde.BinarySerializer;
 import com.github.housepower.settings.ClickHouseDefines;
 import io.netty.buffer.ByteBuf;
@@ -23,8 +21,6 @@ import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
 public class ColumnWriterBuffer {
-
-    private static Logger LOG = LoggerFactory.getLogger(ColumnWriterBuffer.class);
 
     private final ByteArrayWriter columnWriter;
 
@@ -37,7 +33,6 @@ public class ColumnWriterBuffer {
 
     public void writeTo(BinarySerializer serializer) throws IOException {
         ByteBuf buf = columnWriter.getBuf();
-        LOG.warn("write bytes size: {}", buf.readableBytes());
         byte[] bytes = new byte[buf.readableBytes()];
         buf.readBytes(bytes);
         serializer.writeBytes(bytes);
