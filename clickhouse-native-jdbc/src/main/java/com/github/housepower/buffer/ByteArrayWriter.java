@@ -14,27 +14,27 @@
 
 package com.github.housepower.buffer;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.CompositeByteBuf;
+
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.List;
 
 public class ByteArrayWriter implements BuffedWriter {
-    private final int blockSize;
-    private ByteBuffer buffer;
+    private final int columnSize;
 
-    // TODO pooling
-    private final List<ByteBuffer> byteBufferList = new LinkedList<>();
+    private ByteBuf buf;
+    private final CompositeByteBuf compositeBuf;
 
-    public ByteArrayWriter(int blockSize) {
-        this.blockSize = blockSize;
-        this.buffer = ByteBuffer.allocate(blockSize);
-        this.byteBufferList.add(buffer);
+    public ByteArrayWriter(int columnSize) {
+        this.columnSize = columnSize;
+        this.buf = ByteBufAllocator.DEFAULT.buffer(columnSize, columnSize);
+        this.compositeBuf = ByteBufAllocator.DEFAULT.compositeBuffer().addComponent(buf);
     }
 
     @Override
     public void writeBinary(byte byt) throws IOException {
-        buffer.put(byt);
+        buf.writeByte(byt);
         flushToTarget(false);
     }
 
@@ -45,30 +45,27 @@ public class ByteArrayWriter implements BuffedWriter {
 
     @Override
     public void writeBinary(byte[] bytes, int offset, int length) throws IOException {
-
-        while (buffer.remaining() < length) {
-            int num = buffer.remaining();
-            buffer.put(bytes, offset, num);
+        if (buf.maxFastWritableBytes() < length) {
+            int partial = buf.maxFastWritableBytes();
+            buf.writeBytes(bytes, offset, partial);
             flushToTarget(true);
-
-            offset += num;
-            length -= num;
+            offset += partial;
+            length -= partial;
         }
-
-        buffer.put(bytes, offset, length);
+        buf.writeBytes(bytes, offset, length);
         flushToTarget(false);
     }
 
     @Override
-    public void flushToTarget(boolean force) throws IOException {
-        if (buffer.hasRemaining() && !force) {
+    public void flushToTarget(boolean force) {
+        if (buf.maxFastWritableBytes() > 0 && !force)
             return;
-        }
-        buffer = ByteBuffer.allocate(blockSize);
-        byteBufferList.add(buffer);
+
+        buf = ByteBufAllocator.DEFAULT.buffer(columnSize, columnSize);
+        compositeBuf.addComponent(buf);
     }
 
-    public List<ByteBuffer> getBufferList() {
-        return byteBufferList;
+    public CompositeByteBuf getBuf() {
+        return compositeBuf;
     }
 }

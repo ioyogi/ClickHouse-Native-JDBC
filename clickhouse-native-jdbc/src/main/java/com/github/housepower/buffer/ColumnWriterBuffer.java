@@ -14,14 +14,17 @@
 
 package com.github.housepower.buffer;
 
+import com.github.housepower.log.Logger;
+import com.github.housepower.log.LoggerFactory;
 import com.github.housepower.serde.BinarySerializer;
 import com.github.housepower.settings.ClickHouseDefines;
+import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
 
 public class ColumnWriterBuffer {
+
+    private static Logger LOG = LoggerFactory.getLogger(ColumnWriterBuffer.class);
 
     private final ByteArrayWriter columnWriter;
 
@@ -32,15 +35,12 @@ public class ColumnWriterBuffer {
         this.column = new BinarySerializer(columnWriter, false);
     }
 
-    @SuppressWarnings("RedundantCast")
     public void writeTo(BinarySerializer serializer) throws IOException {
-        for (ByteBuffer buffer : columnWriter.getBufferList()) {
-            // upcast is necessary, see detail at:
-            // https://bitbucket.org/ijabz/jaudiotagger/issues/313/java-8-javalangnosuchmethoderror
-            ((Buffer) buffer).flip();
-            while (buffer.hasRemaining()) {
-                serializer.writeByte(buffer.get());
-            }
-        }
+        ByteBuf buf = columnWriter.getBuf();
+        LOG.warn("write bytes size: {}", buf.readableBytes());
+        byte[] bytes = new byte[buf.readableBytes()];
+        buf.readBytes(bytes);
+        serializer.writeBytes(bytes);
+        buf.release();
     }
 }
