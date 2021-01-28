@@ -29,7 +29,7 @@ public class ClickHouseDefines {
     public static int SOCKET_SEND_BUFFER_BYTES = 1024 * 1024;
     public static int SOCKET_RECV_BUFFER_BYTES = 1024 * 1024;
 
-    public static int COLUMN_BUFFER_BYTES = 1024 * 1024;
+    public static int COLUMN_BUFFER_BYTES = 4 * 1024 * 1024;
 
     public static final int DATA_TYPE_CACHE_SIZE = 1024;
 
