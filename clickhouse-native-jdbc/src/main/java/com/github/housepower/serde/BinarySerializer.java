@@ -16,16 +16,12 @@ package com.github.housepower.serde;
 
 import com.github.housepower.buffer.BuffedWriter;
 import com.github.housepower.buffer.CompressedBuffedWriter;
-import com.github.housepower.misc.NettyUtil;
 import com.github.housepower.misc.Switcher;
 import com.github.housepower.settings.ClickHouseDefines;
 import io.airlift.compress.Compressor;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -104,12 +100,13 @@ public class BinarySerializer {
         writeStringBinary(utf8, StandardCharsets.UTF_8);
     }
 
-    public void writeStringBinary(CharSequence data, Charset charset) throws IOException {
-        writeBytesBinary(ByteBufUtil.encodeString(NettyUtil.alloc(), CharBuffer.wrap(data), charset));
+    public void writeStringBinary(String data, Charset charset) throws IOException {
+        byte[] bs = data.getBytes(charset);
+        writeBytesBinary(bs);
     }
 
-    public void writeBytesBinary(ByteBuf bs) throws IOException {
-        writeVarInt(bs.readableBytes());
+    public void writeBytesBinary(byte[] bs) throws IOException {
+        writeVarInt(bs.length);
         switcher.get().writeBinary(bs);
     }
 
@@ -150,7 +147,7 @@ public class BinarySerializer {
         // @formatter:on
     }
 
-    public void writeBytes(ByteBuf bytes) {
+    public void writeBytes(byte[] bytes) throws IOException {
         switcher.get().writeBinary(bytes);
     }
 }
