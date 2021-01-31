@@ -57,17 +57,18 @@ public class CompressedBuffedWriter implements BuffedWriter, CodecHelper {
         if (compositeByteBuf.isReadable() && (force || compositeByteBuf.readableBytes() > capacity)) {
             int maxLen = compressor.maxCompressedLength(compositeByteBuf.readableBytes());
 
-            // byte[] compressedBuffer = new byte[maxLen + COMPRESSION_HEADER_LENGTH + CHECKSUM_LENGTH];
             ByteBuffer compressedBuffer = ByteBuffer.allocate(maxLen + COMPRESSION_HEADER_LENGTH + CHECKSUM_LENGTH);
             compressor.compress(compositeByteBuf.nioBuffer(), compressedBuffer);
-            ByteBuf compressedBuf = Unpooled.wrappedBuffer(compressedBuffer);
-            int compressedDataLen = compressedBuf.readableBytes();
+            compositeByteBuf.clear();
+            int compressedDataLen = compressedBuffer.position() + 1;
             int compressedSize = compressedDataLen + COMPRESSION_HEADER_LENGTH;
-            compressedBuf.writeByte((byte) (0x82 & 0xFF)); // TODO not sure if it works for zstd
-            compressedBuf.writeIntLE(compressedSize).writeIntLE(compositeByteBuf.readableBytes());
-            long[] checksum = ClickHouseCityHash.cityHash128(compressedBuf.array(), CHECKSUM_LENGTH, compressedSize);
-            compressedBuf.writeLongLE(checksum[0]).writeLongLE(checksum[1]);
-            writer.writeBinary(compressedBuf);
+            compressedBuffer.put((byte) (0x82 & 0xFF)); // TODO not sure if it works for zstd
+            compressedBuffer.put(getBytesLE(compressedSize));
+            compressedBuffer.put(getBytesLE(compositeByteBuf.readableBytes()));
+            long[] checksum = ClickHouseCityHash.cityHash128(compressedBuffer.array(), CHECKSUM_LENGTH, compressedSize);
+            compressedBuffer.put(getBytesLE(checksum[0]));
+            compressedBuffer.put(getBytesLE(checksum[1]));
+            writer.writeBinary(Unpooled.wrappedBuffer(compressedBuffer));
         }
     }
 }

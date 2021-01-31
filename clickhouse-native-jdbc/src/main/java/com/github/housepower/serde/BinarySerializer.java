@@ -16,16 +16,14 @@ package com.github.housepower.serde;
 
 import com.github.housepower.buffer.BuffedWriter;
 import com.github.housepower.buffer.CompressedBuffedWriter;
-import com.github.housepower.misc.NettyUtil;
 import com.github.housepower.misc.Switcher;
 import com.github.housepower.settings.ClickHouseDefines;
 import io.airlift.compress.Compressor;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -69,7 +67,7 @@ public class BinarySerializer {
     }
 
     @SuppressWarnings("PointlessBitwiseExpression")
-    public void writeShort(short i) throws IOException {
+    public void writeShort(short i) {
         // @formatter:off
         switcher.get().writeBinary((byte) ((i >> 0) & 0xFF));
         switcher.get().writeBinary((byte) ((i >> 8) & 0xFF));
@@ -77,7 +75,7 @@ public class BinarySerializer {
     }
 
     @SuppressWarnings("PointlessBitwiseExpression")
-    public void writeInt(int i) throws IOException {
+    public void writeInt(int i) {
         // @formatter:off
         switcher.get().writeBinary((byte) ((i >> 0)  & 0xFF));
         switcher.get().writeBinary((byte) ((i >> 8)  & 0xFF));
@@ -87,7 +85,7 @@ public class BinarySerializer {
     }
 
     @SuppressWarnings("PointlessBitwiseExpression")
-    public void writeLong(long i) throws IOException {
+    public void writeLong(long i) {
         // @formatter:off
         switcher.get().writeBinary((byte) ((i >> 0)  & 0xFF));
         switcher.get().writeBinary((byte) ((i >> 8)  & 0xFF));
@@ -105,7 +103,7 @@ public class BinarySerializer {
     }
 
     public void writeStringBinary(CharSequence data, Charset charset) throws IOException {
-        writeBytesBinary(ByteBufUtil.encodeString(NettyUtil.alloc(), CharBuffer.wrap(data), charset));
+        Unpooled.copiedBuffer(data, charset);
     }
 
     public void writeBytesBinary(ByteBuf bs) throws IOException {
@@ -130,13 +128,13 @@ public class BinarySerializer {
         }
     }
 
-    public void writeFloat(float datum) throws IOException {
+    public void writeFloat(float datum) {
         int x = Float.floatToIntBits(datum);
         writeInt(x);
     }
 
     @SuppressWarnings("PointlessBitwiseExpression")
-    public void writeDouble(double datum) throws IOException {
+    public void writeDouble(double datum) {
         long x = Double.doubleToLongBits(datum);
         // @formatter:off
         switcher.get().writeBinary((byte) ((x >>> 0)  & 0xFF));
