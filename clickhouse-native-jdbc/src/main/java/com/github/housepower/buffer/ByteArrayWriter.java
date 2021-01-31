@@ -16,7 +16,6 @@ package com.github.housepower.buffer;
 
 import com.github.housepower.misc.NettyUtil;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.CompositeByteBuf;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,12 +61,11 @@ public class ByteArrayWriter implements BuffedWriter {
     public void flushToTarget(boolean force) {
         if (buf.maxFastWritableBytes() > 0 && !force)
             return;
-
         buf = NettyUtil.alloc().buffer(columnSize, columnSize);
         bufList.add(buf);
     }
 
-    public CompositeByteBuf getBuf() {
+    public ByteBuf getBuf() {
         return NettyUtil.alloc().compositeBuffer(bufList.size()).addComponents(true, bufList);
     }
 }

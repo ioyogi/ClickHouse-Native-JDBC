@@ -28,7 +28,7 @@ public class ColumnWriterBuffer {
 
     public ColumnWriterBuffer() {
         this.columnWriter = new ByteArrayWriter(ClickHouseDefines.COLUMN_BUFFER_BYTES);
-        this.column = new BinarySerializer(columnWriter, false);
+        this.column = new BinarySerializer(columnWriter, false, null);
     }
 
     public void writeTo(BinarySerializer serializer) throws IOException {
@@ -36,6 +36,6 @@ public class ColumnWriterBuffer {
         byte[] bytes = new byte[buf.readableBytes()];
         buf.readBytes(bytes);
         serializer.writeBytes(bytes);
-        buf.release();
+        assert buf.release();
     }
 }
