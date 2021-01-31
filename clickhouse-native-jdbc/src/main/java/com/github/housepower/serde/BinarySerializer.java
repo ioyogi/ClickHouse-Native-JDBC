@@ -103,12 +103,12 @@ public class BinarySerializer {
     }
 
     public void writeStringBinary(CharSequence data, Charset charset) throws IOException {
-        writeBytesBinary(Unpooled.copiedBuffer(data, charset));
+        Unpooled.copiedBuffer(data, charset);
     }
 
     public void writeBytesBinary(ByteBuf bs) throws IOException {
         writeVarInt(bs.readableBytes());
-        writeBytes(bs);
+        switcher.get().writeBinary(bs);
     }
 
     public void flushToTarget(boolean force) throws IOException {

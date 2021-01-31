@@ -48,7 +48,6 @@ public class SocketBuffedWriter implements BuffedWriter {
             byte[] b = new byte[bytes.readableBytes()];
             bytes.readBytes(b);
             out.write(b);
-            flushToTarget(false);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {

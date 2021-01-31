@@ -22,6 +22,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 
+import java.nio.ByteBuffer;
+
 import static com.github.housepower.settings.ClickHouseDefines.CHECKSUM_LENGTH;
 import static com.github.housepower.settings.ClickHouseDefines.COMPRESSION_HEADER_LENGTH;
 
@@ -54,22 +56,19 @@ public class CompressedBuffedWriter implements BuffedWriter, CodecHelper {
     public void flushToTarget(boolean force) {
         if (compositeByteBuf.isReadable() && (force || compositeByteBuf.readableBytes() > capacity)) {
             int maxLen = compressor.maxCompressedLength(compositeByteBuf.readableBytes());
-            byte[] writtenBuf = new byte[compositeByteBuf.readableBytes()];
-            compositeByteBuf.readBytes(writtenBuf);
-            byte[] compressedBuffer = new byte[maxLen + COMPRESSION_HEADER_LENGTH + CHECKSUM_LENGTH];
-            int compressedDataLen = compressor.compress(writtenBuf, 0, compositeByteBuf.readableBytes(), compressedBuffer, COMPRESSION_HEADER_LENGTH + CHECKSUM_LENGTH, compressedBuffer.length);
 
-            compressedBuffer[CHECKSUM_LENGTH] = (byte) (0x82 & 0xFF); // TODO not sure if it works for zstd
-            int compressedSize = compressedDataLen + COMPRESSION_HEADER_LENGTH;
-            System.arraycopy(getBytesLE(compressedSize), 0, compressedBuffer, CHECKSUM_LENGTH + 1, Integer.BYTES);
-            System.arraycopy(getBytesLE(compositeByteBuf.readableBytes()), 0, compressedBuffer, CHECKSUM_LENGTH + Integer.BYTES + 1, Integer.BYTES);
-
-            long[] checksum = ClickHouseCityHash.cityHash128(compressedBuffer, CHECKSUM_LENGTH, compressedSize);
-            System.arraycopy(getBytesLE(checksum[0]), 0, compressedBuffer, 0, Long.BYTES);
-            System.arraycopy(getBytesLE(checksum[1]), 0, compressedBuffer, Long.BYTES, Long.BYTES);
-
-            writer.writeBinary(Unpooled.wrappedBuffer(compressedBuffer, 0, compressedSize + CHECKSUM_LENGTH));
+            ByteBuffer compressedBuffer = ByteBuffer.allocate(maxLen + COMPRESSION_HEADER_LENGTH + CHECKSUM_LENGTH);
+            compressor.compress(compositeByteBuf.nioBuffer(), compressedBuffer);
             compositeByteBuf.clear();
+            int compressedDataLen = compressedBuffer.position() + 1;
+            int compressedSize = compressedDataLen + COMPRESSION_HEADER_LENGTH;
+            compressedBuffer.put((byte) (0x82 & 0xFF)); // TODO not sure if it works for zstd
+            compressedBuffer.put(getBytesLE(compressedSize));
+            compressedBuffer.put(getBytesLE(compositeByteBuf.readableBytes()));
+            long[] checksum = ClickHouseCityHash.cityHash128(compressedBuffer.array(), CHECKSUM_LENGTH, compressedSize);
+            compressedBuffer.put(getBytesLE(checksum[0]));
+            compressedBuffer.put(getBytesLE(checksum[1]));
+            writer.writeBinary(Unpooled.wrappedBuffer(compressedBuffer));
         }
     }
 }
